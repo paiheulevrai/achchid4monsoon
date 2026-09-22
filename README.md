@@ -8,7 +8,7 @@
 
 AChChid for Monsoon is an alternative firmware for **Monsoon**, the Eurorack
 clone/expanded version of Mutable Instruments Clouds. It ports the AChChid
-voice from [ChooChooTracker](https://github.com/jakplugg/ChooChooTracker) to
+voice from [ChooChooTracker](https://github.com/paiheulevrai/Choochootracker) to
 the Clouds/Monsoon STM32F4 platform.
 
 The idea is simple and a little unreasonable in the best way: a TB-303-style
