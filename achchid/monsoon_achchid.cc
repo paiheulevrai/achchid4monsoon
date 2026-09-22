@@ -8,7 +8,6 @@
 #include "clouds/drivers/gate_input.h"
 #include "clouds/drivers/leds.h"
 #include "clouds/drivers/system.h"
-#include "clouds/drivers/switches.h"
 #include "clouds/drivers/version.h"
 
 using achchid::Parameters;
@@ -17,7 +16,6 @@ using clouds::Adc;
 using clouds::Codec;
 using clouds::GateInput;
 using clouds::Leds;
-using clouds::Switches;
 
 // Some Braids digital models share the standalone firmware's global quantizer.
 braids::Quantizer quantizer;
@@ -32,20 +30,8 @@ Voice voice;
 Adc adc;
 GateInput gates;
 Leds leds;
-Switches switches;
 Codec codec;
 float controls[clouds::ADC_CHANNEL_LAST];
-
-// Temporary hardware diagnostic: panel buttons play a self-contained,
-// known-good voice without relying on the external trigger or panel settings.
-int16_t active_test_pitch = 0;
-bool test_active = false;
-bool previous_mode_button = false;
-bool previous_write_button = false;
-uint16_t test_button_feedback = 0;
-bool direct_dac_test = false;
-bool raw_braids_test = false;
-uint32_t direct_dac_phase = 0;
 
 float Clamp(float x) { return x < 0.0f ? 0.0f : (x > 1.0f ? 1.0f : x); }
 
@@ -89,66 +75,17 @@ Parameters ReadParameters() {
 void FillBuffer(Codec::Frame*, Codec::Frame* output, size_t size) {
   gates.Read();
   Parameters parameters = ReadParameters();
-  bool mode_button = switches.pressed_immediate(0);
-  bool write_button = switches.pressed_immediate(1);
-  uint8_t test_note = 0;
-  if (mode_button && !previous_mode_button) {
-    test_note = 60;  // C3.
-  } else if (write_button && !previous_write_button) {
-    test_note = 72;  // C4.
-  }
-  previous_mode_button = mode_button;
-  previous_write_button = write_button;
-  if (test_note) {
-    active_test_pitch = static_cast<int16_t>(test_note << 7);
-    test_active = true;
-    direct_dac_test = test_note == 72;
-    raw_braids_test = test_note == 60;
-    test_button_feedback = 100;
-  } else if (gates.trigger_rising_edge()) {
-    active_test_pitch = 0;
-    test_active = false;
-    direct_dac_test = false;
-    raw_braids_test = false;
-  }
-  if (test_active) {
-    parameters.pitch = active_test_pitch + (12 << 7);
-    parameters.model = braids::MACRO_OSC_SHAPE_CSAW;
-    parameters.timbre = 16384;
-    parameters.color = 16384;
-    parameters.cutoff = 1.0f;
-    parameters.resonance = 0.0f;
-    parameters.env_mod = 0.5f;
-    parameters.decay = 0.5f;
-    parameters.accent = 0.0f;
-  }
   voice.SetParameters(parameters);
-  if (test_note) {
-    voice.Strike(parameters, false);
-  } else if (gates.trigger_rising_edge()) {
+  if (gates.trigger_rising_edge()) {
     voice.Strike(parameters, gates.freeze());
   }
   int16_t mono[32];
-  if (raw_braids_test) {
-    voice.RenderBraidsRaw(mono, size);
-  } else {
-    voice.Render(mono, size);
-  }
-  if (direct_dac_test) {
-    // Temporary C4 diagnostic: bypass every synth stage and drive the DAC
-    // with a 523 Hz square wave. This isolates the physical output path.
-    for (size_t i = 0; i < size; ++i) {
-      direct_dac_phase += 23418197;  // 523 Hz at 96 kHz.
-      mono[i] = (direct_dac_phase & 0x80000000) ? 18000 : -18000;
-    }
-  }
+  voice.Render(mono, size);
   for (size_t i = 0; i < size; ++i) {
     output[i].l = mono[i];
     output[i].r = mono[i];
   }
-  bool show_test_button = test_button_feedback != 0;
-  if (test_button_feedback) --test_button_feedback;
-  leds.set_freeze(gates.freeze() || show_test_button);
+  leds.set_freeze(gates.freeze());
   leds.set_intensity(0, static_cast<uint8_t>(parameters.cutoff * 255.0f));
   leds.set_intensity(1, static_cast<uint8_t>(parameters.resonance * 255.0f));
   leds.set_intensity(2, static_cast<uint8_t>(parameters.env_mod * 255.0f));
@@ -169,7 +106,6 @@ void SVC_Handler() { }
 void DebugMon_Handler() { }
 void PendSV_Handler() { }
 void SysTick_Handler() {
-  switches.Debounce();
 }
 }
 
@@ -180,7 +116,6 @@ int main(void) {
   adc.Init();
   gates.Init();
   leds.Init();
-  switches.Init();
   quantizer.Init();
   voice.Init();
 

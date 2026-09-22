@@ -22,14 +22,6 @@ The stereo inputs and input-gain control are unused. Audio is dual-mono on L
 and R out. `FREEZE` is read only on a `TRIG` rising edge: it is an accent gate,
 not an accent-CV input.
 
-## Temporary diagnostic buttons
-
-For the current diagnostic firmware only, the former top-panel **Mode** button
-plays a fixed CSAW/Open303 C3 voice and **Write** emits a direct 523 Hz square
-wave, bypassing all synth DSP. Both are independent of the panel controls and
-external TRIG. The Freeze LED flashes briefly to acknowledge each press. They
-will be removed once the TRIG-input investigation is complete.
-
 ## Build and install
 
 From the repository root, provide the original ARM 4.8 toolchain then run:
