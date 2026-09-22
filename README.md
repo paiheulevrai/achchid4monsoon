@@ -52,13 +52,12 @@ Working enough to test:
 - TRIG reception.
 - V/OCT and panel control routing.
 - 96 kHz audio operation, required by the embedded Braids core.
+- Open303 filter and envelope behaviour.
 
 Still to validate before calling this a release:
 
 - Every Braids oscillator model and its timbre/colour controls.
 - Accurate pitch and V/OCT behaviour over the useful musical range.
-- Full Open303 response under resonance, accent, fast retriggering, and the
-  complete control range.
 - Long-term DSP stability and CPU headroom on real Monsoon hardware.
 
 ## Install
